@@ -9,12 +9,11 @@
 int main() {
     XMLDocument doc;
     if(XMLDoc_load(&doc, "/home/ziegler/Documents/XML_PArser_SpeedRun/meow.xml")){
-        printf("%s\n%s\nAttrs:\n", doc.root->tag, doc.root->text);
-        for (int i = 0; i < doc.root->attributes.size; ++i) {
-            Attribute a = doc.root->attributes.data[i];
-            printf("\n %s => %s", a.key, a.value);
-        }
-        XMLDoc_free(&doc);
+
+        XMLNode * more_node = getCHild(getCHild(doc.root,0),0);
+        printf("%s => %s\n", more_node->tag, more_node->text);
+        XMLNode * second  = getCHild(doc.root,1);
+        printf("%s => %s\n", second->text, second->tag);
     }
     return 0;
 }

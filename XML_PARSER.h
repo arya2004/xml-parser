@@ -35,15 +35,28 @@ typedef struct IAttributeVector{
 void InitAttributes(AttributeVector* _attrs);
 void AddAttribute(AttributeVector* _attrs, Attribute* _attr);
 
+typedef struct IXMLNodeVEctor{
+    int heap_size;
+    int size;
+    struct IXMLNode** childrens;
+}XMLNodeVEctor;
+
+
+
 typedef struct IXMLNode{
     char* tag;
     char* text;
     struct IXMLNode* daddy;
     AttributeVector attributes;
+    XMLNodeVEctor _children;
 }XMLNode;
+
+void InitChild(XMLNodeVEctor* _vec);
+void AddChild(XMLNodeVEctor* _vec, XMLNode* _node);
 
 XMLNode* initXMLNode(XMLNode* _daddy);
 void freeXMLNode(XMLNode* _node);
+XMLNode* getCHild(XMLNode* _parent, int index);
 
 typedef struct IXMLDocumet{
     XMLNode * root;
@@ -81,6 +94,23 @@ void AddAttribute(AttributeVector* _attrs, Attribute* _attr)
 }
 
 
+void InitChild(XMLNodeVEctor* _vec)
+{
+    _vec->heap_size = 1;
+    _vec->size=  0;
+    _vec->childrens = (XMLNode **) malloc(sizeof(XMLNode*)* _vec->heap_size);
+}
+
+void AddChild(XMLNodeVEctor* _vec, XMLNode* _node)
+{
+    while (_vec->size>= _vec->heap_size) {
+        _vec->heap_size += 2;
+        _vec->childrens = (XMLNode **) realloc(_vec->childrens, sizeof(XMLNode*) * _vec->heap_size);
+    }
+    _vec->childrens[_vec->size] = _node;
+    _vec->size++;
+}
+
 
 XMLNode* initXMLNode(XMLNode* _daddy)
 {
@@ -89,7 +119,8 @@ XMLNode* initXMLNode(XMLNode* _daddy)
     node->tag = NULL;
     node->text = NULL;
     InitAttributes(&node->attributes);
-
+    InitChild(&node->_children);
+    if(_daddy) AddChild(&_daddy->_children, node);
     //_daddy->attributes.heap_size = 1;
     //_daddy->attributes.size=  0;
     //_daddy->attributes.data = (Attribute*) malloc(sizeof(Attribute)* _daddy->attributes.heap_size);
@@ -109,6 +140,9 @@ void freeXMLNode(XMLNode* _node)
 
 }
 
+XMLNode* getCHild(XMLNode* _parent, int index){
+    return _parent->_children.childrens[index];
+}
 
 bool XMLDoc_load(XMLDocument* document,const char* path )
 {

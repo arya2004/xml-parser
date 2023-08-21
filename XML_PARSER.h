@@ -88,11 +88,11 @@ XMLNode* initXMLNode(XMLNode* _daddy)
     node->daddy = _daddy;
     node->tag = NULL;
     node->text = NULL;
-    //InitAttributes(&_daddy->attributes);
+    InitAttributes(&node->attributes);
 
-    _daddy->attributes.heap_size = 1;
-    _daddy->attributes.size=  0;
-    _daddy->attributes.data = (Attribute*) malloc(sizeof(Attribute)* _daddy->attributes.heap_size);
+    //_daddy->attributes.heap_size = 1;
+    //_daddy->attributes.size=  0;
+    //_daddy->attributes.data = (Attribute*) malloc(sizeof(Attribute)* _daddy->attributes.heap_size);
     return node;
 }
 
@@ -182,17 +182,65 @@ bool XMLDoc_load(XMLDocument* document,const char* path )
             if(!current) current = document->root;
             else current = initXMLNode(current);
             i++;
-            //get tag name
-
+            //get beginning of tag
+            Attribute curr_attr = {0,0};
             while (buffer[i] != '>')
             {
                 lex_pointer[lexical_buffer] = buffer[i]; //magic ;)
                 i++;
                 lex_pointer++;
+                //tag name
+                if(buffer[i] == ' ' && !current->tag){
+                    lexical_buffer[lex_pointer] = '\0';
+                    current->tag = strdup(lexical_buffer);
+                    lex_pointer = 0;
+                    i++;
+                    continue;
+                }
+                //usually ignore spaces except above case
+                if(lexical_buffer[lex_pointer] == ' '){
+                    lex_pointer--;
+                    continue;
+                }
+
+                //key
+                if(buffer[i] == '='){
+                    lexical_buffer[lex_pointer] = '\0';
+                    curr_attr.key = strdup(lexical_buffer);
+                    lex_pointer = 0;
+                    continue;
+                }
+                //value of attrivbte
+                if(buffer[i] == '"'){
+                    if(!curr_attr.key){
+                        printf("no key");
+                        return false;
+                    }
+                    lex_pointer = 0;
+                    i++;
+                    while (buffer[i] != '"'){
+                        lexical_buffer[lex_pointer] = buffer[i];
+                        i++;
+                        lex_pointer++;
+                    }
+                    lex_pointer[lexical_buffer] = '\0';
+                    curr_attr.value = strdup(lexical_buffer);
+                    AddAttribute(&current->attributes,&curr_attr);
+                    curr_attr = (Attribute) {0,0};
+                    lex_pointer = 0;
+                    i++;
+                    continue;
+                }
             }
+            //set tag name if none
             lex_pointer[lexical_buffer] = '\0';
-            current->tag = strdup(lexical_buffer);
+            if(!current->tag){
+                current->tag = strdup(lexical_buffer);
+            }
+            //current->tag = strdup(lexical_buffer);
+
             //reset tis
+
             lex_pointer = 0;
             i++;
             continue;

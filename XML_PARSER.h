@@ -19,11 +19,27 @@
     #define  FALSE 0
 #endif
 
+typedef struct IAttribute{
+    char * key;
+    char * value;
+}Attribute;
+
+void freeAttribute(Attribute* _attribute);
+
+typedef struct IAttributeVector{
+    int heap_size;
+    int size;
+    Attribute * data;
+}AttributeVector;
+
+void InitAttributes(AttributeVector* _attrs);
+void AddAttribute(AttributeVector* _attrs, Attribute* _attr);
 
 typedef struct IXMLNode{
     char* tag;
     char* text;
     struct IXMLNode* daddy;
+    AttributeVector attributes;
 }XMLNode;
 
 XMLNode* initXMLNode(XMLNode* _daddy);
@@ -42,25 +58,55 @@ void XMLDoc_free(XMLDocument* document);
 
 //______________________________________________________
 
+void freeAttribute(Attribute* _attribute)
+{
+    free(_attribute->key);
+    free(_attribute->value);
+}
+
+void InitAttributes(AttributeVector* _attrs)
+{
+    _attrs->heap_size = 1;
+    _attrs->size=  0;
+    _attrs->data = (Attribute*) malloc(sizeof(Attribute)* _attrs->heap_size);
+}
+void AddAttribute(AttributeVector* _attrs, Attribute* _attr)
+{
+    while (_attrs->size>= _attrs->heap_size) {
+        _attrs->heap_size += 2;
+        _attrs->data = (Attribute *) realloc(_attrs->data, sizeof(Attribute) * _attrs->heap_size);
+    }
+    _attrs->data[_attrs->size] = *_attr;
+    _attrs->size++;
+}
+
+
+
 XMLNode* initXMLNode(XMLNode* _daddy)
 {
     XMLNode * node = (XMLNode*) malloc(sizeof(XMLNode));
     node->daddy = _daddy;
     node->tag = NULL;
     node->text = NULL;
+    //InitAttributes(&_daddy->attributes);
+
+    _daddy->attributes.heap_size = 1;
+    _daddy->attributes.size=  0;
+    _daddy->attributes.data = (Attribute*) malloc(sizeof(Attribute)* _daddy->attributes.heap_size);
     return node;
 }
 
 void freeXMLNode(XMLNode* _node)
 {
-    if(_node->tag)
-    {
-        free(_node->tag);
+    if(_node->tag) free(_node->tag);
+
+    if(_node->text) free(_node->text);
+    for (int i = 0; i < _node->attributes.size; ++i) {
+        freeAttribute(&_node->attributes.data[i]);
     }
-    if(_node->text)
-    {
-        free(_node->text);
-    }
+
+    free(_node);
+
 }
 
 

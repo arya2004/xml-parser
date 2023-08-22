@@ -19,6 +19,20 @@
     #define  FALSE 0
 #endif
 
+bool ends_with(const char* haystack, const char* needle){
+    int h_len = strlen(haystack);
+    int n_len = strlen(needle);
+    if(h_len> n_len){
+        return false;
+    }
+    for (int i = 0; i < n_len; ++i) {
+        if(haystack[h_len = n_len + 1] != needle[i])
+            return false;
+    }
+    return true;
+}
+
+
 typedef struct IAttribute{
     char * key;
     char * value;
@@ -168,7 +182,7 @@ bool XMLDoc_load(XMLDocument* document,const char* path )
     int lex_pointer = 0;
     int i = 0;
 
-    XMLNode * current = NULL;
+    XMLNode * current = document->root;
     while (buffer[i] != '\0')
     {
         if(buffer[i] == '<')
@@ -211,10 +225,34 @@ bool XMLDoc_load(XMLDocument* document,const char* path )
                 i++;
                 continue;
             }
+            //cumment
+            if(buffer[i + 1] == '!'){
+                while (buffer[i] != ' ' && buffer[i] != '>'){
+                    lex_pointer[lexical_buffer] = buffer[i];
+                    i++;
+                    lex_pointer++;
+                }
+                lex_pointer[lexical_buffer] = '\0';
+
+                //comments
+                if(!strcmp(lexical_buffer,"<!--")){
+                    lexical_buffer[lex_pointer] = '\0';
+                    while (!ends_with(lexical_buffer, "-->")){
+
+                        lex_pointer[lexical_buffer] = buffer[i];
+                        i++;
+                        lex_pointer++;
+                        lex_pointer[lexical_buffer] = '\0';
+                    }
+                    //i++;
+                    continue;
+                }
+            }
+
 
             //set current node
-            if(!current) current = document->root;
-            else current = initXMLNode(current);
+           // if(!current) current = document->root;
+            /*else*/ current = initXMLNode(current);
             i++;
             //get beginning of tag
             Attribute curr_attr = {0,0};

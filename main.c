@@ -10,7 +10,12 @@ int main() {
     XMLDocument doc;
     if(XMLDocument_load(&doc, "/home/ziegler/Documents/XML_PArser_SpeedRun/meow.xml")){
 
-        printf("%s\n%s\n", doc.root->tag, doc.root->inner_text);
+        XMLNode node = *doc.root;
+        printf("Attrs\n");
+        for (int i = 0; i < node.attributes.size; i++) {
+            XMLAttribute attr = node.attributes.data[i];
+            printf("%s : %s\n", attr.key, attr.value);
+        }
 
 
         XMLDocument_free(&doc);

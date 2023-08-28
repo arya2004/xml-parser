@@ -168,7 +168,14 @@ char* XMLNode_atr_val(XMLNode* node, char * key)
     return NULL;
 }
 
-static void parse_attrs(char* buffer,int* i,char* lex ,int* lexi, XMLNode* current_node)
+typedef enum _tagtype
+{
+    TAG_START,
+    TAG_INLINE
+}TagType;
+
+
+static TagType parse_attrs(char* buffer,int* i,char* lex ,int* lexi, XMLNode* current_node)
 {
     XMLAttribute  curr_attr = {0,0};
     while (buffer[*i] != '>'){
@@ -178,14 +185,14 @@ static void parse_attrs(char* buffer,int* i,char* lex ,int* lexi, XMLNode* curre
         if(buffer[*i] == ' ' && !current_node->tag){
             lex[*lexi] = '\0';
             current_node->tag = strdup(lex);
-            lexi = 0;
+            *lexi = 0;
             (*i)++;
             continue;
         }
         //usually ignore spaces
         if(lex[*lexi -1] == ' '){
             (*lexi)--;
-            continue;
+            //continue;
         }
         //equal sign indicates buffer has attr key
         if(buffer[*i] == '='){
@@ -198,7 +205,7 @@ static void parse_attrs(char* buffer,int* i,char* lex ,int* lexi, XMLNode* curre
         if(buffer[*i] == '"'){
             if(!curr_attr.key){
                 fprintf(stderr, "no key, dumass\n");
-                return;
+                return TAG_START;
             }
             *lexi = 0;
             (*i)++;
@@ -218,8 +225,16 @@ static void parse_attrs(char* buffer,int* i,char* lex ,int* lexi, XMLNode* curre
             continue;
 
         }
-
+        //inline tags
+        if(buffer[(*i) - 1] == '/' && buffer[*i] == '>'){
+            lex[(*lexi)] = '\0';
+            if(!current_node->tag)
+                current_node->tag = strdup(lex);
+            (*i)++;
+            return  TAG_INLINE;
+        }
     }
+    return  TAG_START;
 }
 
 bool XMLDocument_load(XMLDocument* doc, const char* path)
@@ -329,7 +344,12 @@ bool XMLDocument_load(XMLDocument* doc, const char* path)
 
             // get beginning of a tag
             i++;
-            parse_attrs(buffer,&i,lex,&lexi,current_node);
+            if(parse_attrs(buffer,&i,lex,&lexi,current_node) == TAG_INLINE){
+                current_node = current_node->parent;
+                i++;
+                continue;
+                //above one checks for inline tags
+            }
             //set tag name, if none
             lex[lexi] = '\0';
             if(!current_node->tag )

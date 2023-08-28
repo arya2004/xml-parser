@@ -1,1 +1,1 @@
-<root>dotnet rin</root>
+<root key="meow" dotnet="run">dotnet rin</root>

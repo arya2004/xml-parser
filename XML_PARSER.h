@@ -19,10 +19,28 @@
     #define  FALSE 0
 #endif
 
+typedef struct _XMLAttribute{
+    char* key;
+    char* value;
+} XMLAttribute;
+
+void XMLAttribute_free(XMLAttribute* attr);
+
+typedef struct _XMLAttributeList{
+    int heap_size;
+    int size;
+    XMLAttribute* data;
+}XMLAttributeList;
+
+void XMLAttributeList_init(XMLAttributeList * list);
+void XMLAttributeList_add(XMLAttributeList * list, XMLAttribute * attr);
+
+
 typedef struct _XMLNode{
     char* tag;
     char* inner_text;
     struct _XMLNode* parent;
+    XMLAttributeList attributes;
 }XMLNode;
 
 XMLNode* XMLNode_new(XMLNode* parent);
@@ -41,12 +59,36 @@ void XMLDocument_free(XMLDocument* doc);
 
 //______________________________________________________
 
+void XMLAttribute_free(XMLAttribute* attr)
+{
+    free(attr->value);
+    free(attr->key);
+}
+
+void XMLAttributeList_init(XMLAttributeList * list)
+{
+    list->heap_size = 1;
+    list->size = 0;
+    list->data = (XMLAttribute*) malloc(sizeof (XMLAttribute)* list->heap_size);
+}
+void XMLAttributeList_add(XMLAttributeList * list, XMLAttribute * attr)
+{
+    while (list->size >= list->heap_size){
+        list->heap_size *= 2;
+        list->data = (XMLAttribute*) realloc(list->data, sizeof (XMLAttribute) * list->heap_size);
+    }
+    list->data[list->size] = *attr;
+    list->size++;
+}
+
+
 XMLNode* XMLNode_new(XMLNode* parent)
 {
     XMLNode* node = (XMLNode*) malloc(sizeof (XMLNode ));
     node->parent = parent;
     node->tag = NULL;
     node->inner_text = NULL;
+    XMLAttributeList_init(&node->attributes);
     return node;
 }
 
@@ -56,6 +98,9 @@ void XMLNode_free(XMLNode* node)
         free(node->tag);
     if(node->inner_text)
         free(node->inner_text);
+    for (int i = 0; i < node->attributes.size; i++) {
+        XMLAttribute_free(&node->attributes.data[i]);
+    }
     free(node);
 }
 
@@ -130,14 +175,64 @@ bool XMLDocument_load(XMLDocument* doc, const char* path)
                 current_node = doc->root;
             else
                 current_node = XMLNode_new(current_node);
+
+            // get beginning of a tag
             i++;
+            XMLAttribute  curr_attr = {0,0};
             while (buffer[i] != '>'){
-                lex[lexi] = buffer[i];
-                lexi++;
-                i++;
+                lex[lexi++] = buffer[i++];
+
+                //tag name
+                if(buffer[i] == ' ' && !current_node->tag){
+                    lex[lexi] = '\0';
+                    current_node->tag = strdup(lex);
+                    lexi = 0;
+                    i++;
+                    continue;
+                }
+                //usually ignore spaces
+                if(lex[lexi -1] == ' '){
+                    lexi--;
+                    continue;
+                }
+                //equal sign indicates buffer has attr key
+                if(buffer[i] == '='){
+                    lex[lexi] = '\0';
+                    curr_attr.key = strdup(lex);
+                    lexi = 0;
+                    continue;
+                }
+                //attr value. check if key exist
+                if(buffer[i] == '"'){
+                    if(!curr_attr.key){
+                        fprintf(stderr, "no key, dumass\n");
+                        return false;
+                    }
+                    lexi = 0;
+                    i++;
+
+                    while (buffer[i] != '"'){
+                        lex[lexi] = buffer[i];
+                        lexi++;
+                        i++;
+                    }
+                    lex[lexi] = '\0';
+                    curr_attr.value = strdup(lex);
+                    XMLAttributeList_add(&current_node->attributes, &curr_attr);
+                    curr_attr.key = NULL;
+                    curr_attr.value = NULL;
+                    lexi = 0;
+                    i++;
+                    continue;
+
+                }
+
             }
+            //set tag name, if none
             lex[lexi] = '\0';
-            current_node->tag = strdup(lex);
+            if(!current_node->tag )
+                current_node->tag = strdup(lex);
+           // current_node->tag = strdup(lex);
 
             //reset the lexer
             lexi = 0;

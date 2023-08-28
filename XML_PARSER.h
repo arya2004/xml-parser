@@ -19,6 +19,22 @@
     #define  FALSE 0
 #endif
 
+//helper func  to see if first str ends with second
+bool ends_with(const char* haystack, const char* needle){
+    int h_len = strlen(haystack);
+    int n_len = strlen(needle);
+    if(h_len < n_len){
+        return false;
+    }
+    for (int i = 0; i < n_len; i++) {
+        if(haystack[h_len - n_len + i] != needle[i])
+            return false;
+    }
+    return true;
+}
+
+
+//___________________________________
 typedef struct _XMLAttribute{
     char* key;
     char* value;
@@ -203,6 +219,25 @@ bool XMLDocument_load(XMLDocument* doc, const char* path)
                 i++;
                 continue;
             }
+
+            //check for comment
+            if(buffer[i+1] == '!'){
+                while (buffer[i] != ' ' && buffer[i] != '>'){
+                    lex[lexi++] = buffer[i++];
+                }
+                lex[lexi] = '\0';
+
+                if(!strcmp(lex, "<!--")){
+                    lex[lexi] = '\0';
+                    while (!ends_with(lex, "-->")){
+                        lex[lexi++] = buffer[i++];
+                        lex[lexi] = '\0';
+                    }
+                    //i++;
+                    continue;
+                }
+            }
+
 
             //set current node
             current_node = XMLNode_new(current_node);

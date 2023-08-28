@@ -8,12 +8,12 @@
 
 int main() {
     XMLDocument doc;
-    if(XMLDoc_load(&doc, "/home/ziegler/Documents/XML_PArser_SpeedRun/meow.xml")){
+    if(XMLDocument_load(&doc, "/home/ziegler/Documents/XML_PArser_SpeedRun/meow.xml")){
 
-        XMLNode * main_node = getCHild(doc.root,0);
+        printf("%s\n%s\n", doc.root->tag, doc.root->inner_text);
 
 
-        XMLDoc_free(&doc);
+        XMLDocument_free(&doc);
     }
     return 0;
 }

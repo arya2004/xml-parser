@@ -35,16 +35,26 @@ typedef struct _XMLAttributeList{
 void XMLAttributeList_init(XMLAttributeList * list);
 void XMLAttributeList_add(XMLAttributeList * list, XMLAttribute * attr);
 
+typedef struct _XMLNodeList{
+    int heap_size;
+    int size;
+    struct _XMLNode** data;
+}XMLNodeList;
+
+void XMLNodeList_init(XMLNodeList * list);
+//void XMLNodeList_add(XMLNodeList * list, struct _XMLNode * node);
 
 typedef struct _XMLNode{
     char* tag;
     char* inner_text;
     struct _XMLNode* parent;
     XMLAttributeList attributes;
+    XMLNodeList children;
 }XMLNode;
 
 XMLNode* XMLNode_new(XMLNode* parent);
 void XMLNode_free(XMLNode* node);
+XMLNode* XMLNode_child(XMLNode* parent,int index);
 
 typedef struct _XMLDocument{
     XMLNode * root;
@@ -81,6 +91,22 @@ void XMLAttributeList_add(XMLAttributeList * list, XMLAttribute * attr)
     list->size++;
 }
 
+void XMLNodeList_init(XMLNodeList * list)
+{
+    list->heap_size = 1;
+    list->size = 0;
+    list->data = (XMLNode**) malloc(sizeof (XMLNode*) * list->heap_size);
+
+}
+void XMLNodeList_add(XMLNodeList * list, XMLNode * node)
+{
+    while (list->size >= list->heap_size){
+        list->heap_size *= 2;
+        list->data = (XMLNode**) realloc(list->data, sizeof (XMLNode*) * list->heap_size);
+    }
+    list->data[list->size] = node;
+    list->size++;
+}
 
 XMLNode* XMLNode_new(XMLNode* parent)
 {
@@ -89,6 +115,9 @@ XMLNode* XMLNode_new(XMLNode* parent)
     node->tag = NULL;
     node->inner_text = NULL;
     XMLAttributeList_init(&node->attributes);
+    XMLNodeList_init(&node->children);
+    if(parent)
+        XMLNodeList_add(&parent->children,node);
     return node;
 }
 
@@ -102,6 +131,11 @@ void XMLNode_free(XMLNode* node)
         XMLAttribute_free(&node->attributes.data[i]);
     }
     free(node);
+}
+
+XMLNode* XMLNode_child(XMLNode* parent,int index)
+{
+    return parent->children.data[index];
 }
 
 
@@ -129,7 +163,7 @@ bool XMLDocument_load(XMLDocument* doc, const char* path)
     char lex[256];
     int lexi = 0;
     int i = 0;
-    XMLNode* current_node = NULL;
+    XMLNode* current_node = doc->root;
 
     while (buffer[i] != '\0')
     {
@@ -171,10 +205,7 @@ bool XMLDocument_load(XMLDocument* doc, const char* path)
             }
 
             //set current node
-            if(!current_node)
-                current_node = doc->root;
-            else
-                current_node = XMLNode_new(current_node);
+            current_node = XMLNode_new(current_node);
 
             // get beginning of a tag
             i++;

@@ -60,6 +60,7 @@ typedef struct _XMLNodeList{
 void XMLNodeList_init(XMLNodeList * list);
 //void XMLNodeList_add(XMLNodeList * list, struct _XMLNode * node);
 
+
 typedef struct _XMLNode{
     char* tag;
     char* inner_text;
@@ -68,10 +69,16 @@ typedef struct _XMLNode{
     XMLNodeList children;
 }XMLNode;
 
+XMLNode* XMLNodeList_at(XMLNodeList* list, int index );
+void XMLNodeList_free(XMLNodeList* list);
+
 XMLNode* XMLNode_new(XMLNode* parent);
 void XMLNode_free(XMLNode* node);
 XMLNode* XMLNode_child(XMLNode* parent,int index);
+XMLNodeList* XMLNode_children(XMLNode* parent, const char* tag);
 char* XMLNode_atr_val(XMLNode* node, char * key);
+XMLAttribute * XMLNode_attr(XMLNode * node, char* key);
+
 
 typedef struct _XMLDocument{
     XMLNode * root;
@@ -127,6 +134,15 @@ void XMLNodeList_add(XMLNodeList * list, XMLNode * node)
     list->size++;
 }
 
+XMLNode* XMLNodeList_at(XMLNodeList* list, int index )
+{
+    return list->data[index];
+}
+void XMLNodeList_free(XMLNodeList* list)
+{
+    free(list);
+}
+
 XMLNode* XMLNode_new(XMLNode* parent)
 {
     XMLNode* node = (XMLNode*) malloc(sizeof (XMLNode ));
@@ -157,12 +173,37 @@ XMLNode* XMLNode_child(XMLNode* parent,int index)
     return parent->children.data[index];
 }
 
+XMLNodeList* XMLNode_children(XMLNode* parent, const char* tag)
+{
+    XMLNodeList * list = (XMLNodeList*) malloc(sizeof (XMLNodeList));
+    XMLNodeList_init(list);
+
+    for (int i = 0; i < parent->children.size; i++) {
+        XMLNode* child = parent->children.data[i];
+        if(!strcmp(child->tag, tag)){
+            XMLNodeList_add(list, child);
+        }
+    }
+    return list;
+}
+
 char* XMLNode_atr_val(XMLNode* node, char * key)
 {
     for (int i = 0; i < node->attributes.size; i++) {
         XMLAttribute  a = node->attributes.data[i];
         if(!strcmp(a.key, key)){
             return a.value;
+        }
+    }
+    return NULL;
+}
+
+XMLAttribute * XMLNode_attr(XMLNode * node, char* key)
+{
+    for (int i = 0; i < node->attributes.size; i++) {
+        XMLAttribute*  a = &node->attributes.data[i];
+        if(!strcmp(a->key, key)){
+            return a;
         }
     }
     return NULL;
@@ -185,7 +226,7 @@ static TagType parse_attrs(char* buffer,int* i,char* lex ,int* lexi, XMLNode* cu
         if(buffer[*i] == ' ' && !current_node->tag){
             lex[*lexi] = '\0';
             current_node->tag = strdup(lex);
-            *lexi = 0;
+            *lexi = 0; //this MF caused a lot of headache :(
             (*i)++;
             continue;
         }

@@ -40,26 +40,17 @@ typedef struct _XMLAttribute{
     char* value;
 } XMLAttribute;
 
-void XMLAttribute_free(XMLAttribute* attr);
-
 typedef struct _XMLAttributeList{
     int heap_size;
     int size;
     XMLAttribute* data;
 }XMLAttributeList;
 
-void XMLAttributeList_init(XMLAttributeList * list);
-void XMLAttributeList_add(XMLAttributeList * list, XMLAttribute * attr);
-
 typedef struct _XMLNodeList{
     int heap_size;
     int size;
     struct _XMLNode** data;
 }XMLNodeList;
-
-void XMLNodeList_init(XMLNodeList * list);
-//void XMLNodeList_add(XMLNodeList * list, struct _XMLNode * node);
-
 
 typedef struct _XMLNode{
     char* tag;
@@ -69,8 +60,24 @@ typedef struct _XMLNode{
     XMLNodeList children;
 }XMLNode;
 
+typedef struct _XMLDocument{
+    XMLNode * root;
+    char* version;
+    char* encoding;
+}XMLDocument;
+
+
+void XMLAttribute_free(XMLAttribute* attr);
+
+
+void XMLAttributeList_init(XMLAttributeList * list);
+void XMLAttributeList_add(XMLAttributeList * list, XMLAttribute * attr);
+
+
+void XMLNodeList_init(XMLNodeList * list);
 XMLNode* XMLNodeList_at(XMLNodeList* list, int index );
 void XMLNodeList_free(XMLNodeList* list);
+
 
 XMLNode* XMLNode_new(XMLNode* parent);
 void XMLNode_free(XMLNode* node);
@@ -80,17 +87,9 @@ char* XMLNode_atr_val(XMLNode* node, char * key);
 XMLAttribute * XMLNode_attr(XMLNode * node, char* key);
 
 
-typedef struct _XMLDocument{
-    XMLNode * root;
-    char* version;
-    char* encoding;
-}XMLDocument;
-
-
 bool XMLDocument_load(XMLDocument* doc, const char* path);
+bool XMLDocument_write(XMLDocument * doc, const char* path, int indent);
 void XMLDocument_free(XMLDocument* doc);
-
-
 
 
 //______________________________________________________
@@ -410,6 +409,52 @@ bool XMLDocument_load(XMLDocument* doc, const char* path)
 
     return true;
 }
+
+static void node_out(FILE* file, XMLNode* node, int indent, int times)
+{
+     for (int i = 0; i < node->children.size; i++) {
+        XMLNode* child = node->children.data[i];
+
+        if (times > 0)
+            fprintf(file, "%0*s", indent * times, " ");
+
+        fprintf(file, "<%s", child->tag);
+        for (int i = 0; i < child->attributes.size; i++) {
+            XMLAttribute attr = child->attributes.data[i];
+            if (!attr.value || !strcmp(attr.value, ""))
+                continue;
+            fprintf(file, " %s=\"%s\"", attr.key, attr.value);
+        }
+
+        if (child->children.size == 0 && !child->inner_text)
+            fprintf(file, " />\n");
+        else {
+            fprintf(file, ">");
+            if (child->children.size == 0)
+                fprintf(file, "%s</%s>\n", child->inner_text, child->tag);
+            else {
+                fprintf(file, "\n");
+                node_out(file, child, indent, times + 1);
+                if (times > 0)
+                    fprintf(file, "%0*s", indent * times, " ");
+                fprintf(file, "</%s>\n", child->tag);
+            }
+        }
+    }
+}
+
+bool XMLDocument_write(XMLDocument * doc, const char* path, int indent)
+{
+    FILE* file = fopen(path, "w");
+    if(!file){
+        fprintf(stderr, "cant open file, sorruwu");
+        return false;
+    }
+    fprintf(file, "<?xml version=\"%s\" encoding=\"%s\" ?>", (doc->version) ? doc->version : "1.0", (doc->encoding) ? doc->encoding : "UTF-8");
+    node_out( file,  doc->root,  indent, 0);
+    fclose(file);
+}
+
 void XMLDocument_free(XMLDocument* doc)
 {
     XMLNode_free(doc->root);

@@ -17,7 +17,7 @@ int main() {
             XMLNode* field = XMLNodeList_at(fields, i);
             printf("  %s (%s)\n", XMLNode_atr_val(field, "name"), XMLNode_atr_val(field, "type"));
         }
-
+        XMLDocument_write(&doc, "lel.xml", 10);
         XMLDocument_free(&doc);
         printf("dome");
     }

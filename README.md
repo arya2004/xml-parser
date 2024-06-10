@@ -16,7 +16,7 @@ This XML parser in C is designed to parse XML documents and extract data from th
 ## Installation
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/xml-parser-c.git
+   git clone https://github.com/arya2004/xml-parser.git
    ```
 
 
